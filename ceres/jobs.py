@@ -9,6 +9,7 @@ import hashlib
 import os
 import logging
 from glob import glob
+import tables as tb
 
 from ceres import cities
 from ceres import templates
@@ -19,10 +20,27 @@ def config_files_1to1(files, args, paths, versions):
     to_process = []
     #check hdf5 file are completely written
     ftype = magic.Magic()
-    for f in files:
+
+    #Sort input files by index
+    files.sort(key=lambda f: int(utils.get_index_from_file_name(f)))
+    files_out = glob(paths.output + '/*h5')
+    #Get output files indexes
+    indexes_out = list(map( lambda f: int(f.split('/')[-1].split('_')[1]), files_out))
+    indexes_out.sort()
+    try:
+        last_index = indexes_out[-1]
+    except IndexError:
+        last_index = 0
+
+    for f in files[last_index:]:
         #if file complete type would be: "Hierarchical Data Format (version 5) data"
         if ftype.from_file(f) == 'data':
             continue
+        #Check pmap files are already finished
+        if args.city == 'dorothea':
+            with tb.open_file(f) as h5in:
+                if not '/Run/events' in h5in.root:
+                    break
 
         filename     = f.split('/')[-1]
         fileno = utils.get_index_from_file_name(filename)
