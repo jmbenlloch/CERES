@@ -181,6 +181,16 @@ def generate_jobs(configs, args, paths, versions):
         jobfile.write(cmd)
         cmd = 'city {} {} 1>>{} 2>{}\n'.format(args.city, config, log_out, log_err)
         jobfile.write(cmd)
+        if args.city == 'irene':
+            cmd = '''
+FILEOUT=`grep file_out {} | cut -d"'" -f 2`
+CHECKSIZE=`h5ls -r $FILEOUT/Run/events | awk '{{print $3}}'`
+if [ $CHECKSIZE == "{{0/Inf}}" ]; then
+   	rm $FILEOUT;
+fi
+'''.format(config)
+        jobfile.write(cmd)
+
         cmd = 'echo "job finished" >> {}\n'.format(log_out)
         jobfile.write(cmd)
 
